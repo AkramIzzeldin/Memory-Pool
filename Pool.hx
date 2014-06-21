@@ -30,5 +30,4 @@ class Pool<T>
     private var _allocator : Void -> T;
     private var _freeObjects : Array<T>;
     private var _newObject : T;
-    private var _fields : Array<String>;
 }
