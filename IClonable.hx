@@ -37,9 +37,12 @@ class ClonableImpl
 								case "Int" | "Float" | "Bool" | "String":
 									funcBody.push(macro $p { ["object"].concat( field.access ).concat( [field.f.name] ) } = $p { field.access.concat( [field.f.name] ) } );
 								case "Array" | "Vector":
-									funcBody.push(macro for (i in $p { field.access.concat( [field.f.name] ).concat( ["length"] ) } )
+									funcBody.push(macro $p { ["object"].concat( field.access ).concat( [field.f.name] ) } = []);
+									funcBody.push(macro for (i in 0 ... $p { field.access.concat( [field.f.name] ).concat( ["length"] ) } )
 														$p { ["object"].concat( field.access ).concat( [field.f.name] ) }[i] = $p { field.access.concat( [field.f.name] ) }[i] );
 								case "Map":
+									funcBody.push(macro for (key in $p { [ "object"].concat( field.access ).concat( [field.f.name] ).concat( ["keys"] ) } () )
+														$p { ["object"].concat( field.access ).concat( [field.f.name] ).concat( ["remove"] ) }(key));
 									funcBody.push(macro for (key in $p { field.access.concat( [field.f.name] ).concat( ["keys"] ) }() )
 														$p { ["object"].concat( field.access ).concat( [field.f.name] ) }[key] = $p { field.access.concat( [field.f.name] ) }[key] );
 								case "List":
