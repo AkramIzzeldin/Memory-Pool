@@ -1,5 +1,3 @@
-import IClonable;
-
 class Pool<T>
 {
     public function new (allocator:Void -> T)
