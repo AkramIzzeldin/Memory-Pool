@@ -2,7 +2,7 @@ package;
 
 import Pool;
 
-class Main
+class Example
 {
 	static public function main()
 	{
