@@ -3,19 +3,17 @@ import haxe.macro.Expr;
 import haxe.macro.Printer;
 import haxe.macro.Type.ClassField;
 
-@:remove @:autobuild(ClonableImpl.clonableImpl) extern interface IClonable {}
-
-typedef MyField = { f : Field, access:Array<String> }
+@:remove @:autoBuild(ClonableImpl.build()) extern interface IClonable {	}
 
 class ClonableImpl
 {
-	macro public static function clonableImpl() : Array<Field>
+	macro public static function build() : Array<Field>
 	{
 		var fields = Context.getBuildFields();
 		
 		var funcBody = [];
 		
-		var queue = new List<MyField>();
+		var queue = new List<{f: Field, access:Array<String>}>();
 		for (field in fields)
 			queue.add( { f: field, access: [] } );
 		
@@ -49,16 +47,60 @@ class ClonableImpl
 														$p { ["object"].concat( field.access ).concat( [field.f.name] ).concat( ["add"] ) } (item));
 								case _:
 									var type = Context.follow(Context.getType(p.sub == null ? p.name : p.name + '.' + p.sub));
+									var isAbstract = true;
+									while (isAbstract)
+									{
+										switch(type)
+										{
+											case TAbstract(t, params):
+												type = t.get().type;
+												switch(t.get().name)
+												{
+													case "Int" | "Float" | "Bool":
+														isAbstract = false;
+														switch(field.f.kind)
+														{
+															case FVar(ct, expr):
+																field.f.kind = FVar(Context.toComplexType(type), expr);
+																queue.push( { f : field.f, access : field.access } );
+															case _:
+														}
+													case _:
+												}
+											case _:
+												isAbstract = false;
+										}
+									}
 									switch(type)
 									{
 										case TEnum (t, params):
 											funcBody.push(macro $p { ["object"].concat( field.access ).concat( [field.f.name] ) } = $p { field.access.concat( [field.f.name] ) } );
 										case TInst (t, params):
-											// toField
+											var fs = t.get().fields.get();
+											var superClass = t.get().superClass;
+											while (superClass != null)
+											{
+												for (fi in t.get().superClass.t.get().fields.get())
+													fs.push(fi);
+												superClass = superClass.t.get().superClass;
+											}
+											for (fi in fs)
+												switch(fi.kind)
+												{
+													case FVar(_, _):
+														queue.push ( { f : toField(fi), access : field.access.concat( [field.f.name] ) } );
+													case _:
+												}
 										case TAnonymous (a):
-											// toField
-										case TAbstract (t, params):
-											// extract field (this field with t.type as it's type)
+											for (fi in a.get().fields)
+											{
+												switch(fi.kind)
+												{
+													case FVar(_, _):
+														queue.push ( { f : toField(fi), access : field.access.concat( [field.f.name] ) } );
+													case _:
+												}
+											}
 										case _:
 								}
 							}
@@ -74,7 +116,7 @@ class ClonableImpl
 		}
 		
 		var field = {
-			name : "CopyTo",
+			name : "copyTo",
 			pos : Context.currentPos(),
 			access : [Access.APublic],
 			meta : [],
@@ -90,15 +132,35 @@ class ClonableImpl
 			} )
 		};
 		
-		trace(new Printer().printField(field));
-		
 		fields.push(field);
+		
+		#if debug
+		trace(new Printer().printField(field));
+		#end
 		
 		return fields;
 	}
 	
-	public function toField(cf : ClassField)
+	static public function toField(cf : ClassField) : Field
 	{
+		var fieldAccess = [];
+		cf.isPublic ? fieldAccess.push(APublic) : fieldAccess.push(APrivate);
 		
+		var cType = Context.toComplexType(cf.type);
+		
+		var expr;
+		cf.expr() != null ?
+		expr = Context.getTypedExpr(cf.expr()) :
+		expr = null;
+		
+		var fieldKind = FVar(cType, expr);
+		return {
+			pos : cf.pos,
+			name : cf.name,
+			meta : cf.meta.get(),
+			doc : cf.doc,
+			access : fieldAccess,
+			kind : fieldKind
+		}
 	}
 }
