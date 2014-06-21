@@ -6,7 +6,7 @@ class Main
 {
 	static public function main()
 	{
-		var pool = new Pool(function() { return {x:0, y:0}; } );
+		var pool = new Pool(function() { return new Object(); } );
 		
 		{
 			var p1 = pool.take();
@@ -25,4 +25,10 @@ class Main
 		trace(p1);
 		trace(p2);
 	}
+}
+
+class Object implements IClonable
+{
+	public var x = 0;
+	public var y = 0;
 }
