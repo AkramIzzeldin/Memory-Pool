@@ -6,7 +6,7 @@ class Main
 {
 	static public function main()
 	{
-		var pool = new Pool(function() { return new Object(); } );
+		var pool = new Pool(function() { return new Point(); } );
 		
 		{
 			var p1 = pool.take();
@@ -19,15 +19,15 @@ class Main
 			pool.put(p2);
 		}
 		
-		var p1 = pool.take(true); // this var will be initialized
-		var p2 = pool.take(); // this var won't be initialized
+		var p1 = pool.take(true); // this instance will be initialized
+		var p2 = pool.take();     // this instance won't be initialized
 		
 		trace(p1);
 		trace(p2);
 	}
 }
 
-class Object implements IClonable
+class Point implements IClonable
 {
 	public var x = 0;
 	public var y = 0;
